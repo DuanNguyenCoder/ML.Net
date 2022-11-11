@@ -24,6 +24,8 @@ namespace MLNET_ObjectDetection_WinForms
 
         private PredictionEngine<WineInput, WinePredictions> _predictionEngine;
 
+        string ProjectLocation = Path.GetDirectoryName(Path.GetDirectoryName(System.IO.Directory.GetCurrentDirectory()));
+
         public Form1()
         {
             InitializeComponent();
@@ -37,9 +39,13 @@ namespace MLNET_ObjectDetection_WinForms
 
             var data = context.Data.LoadFromEnumerable(emptyData);
 
+        string pathModel = ProjectLocation + @"\MLModel\model.onnx"; 
+
+          
+
             var pipeline = context.Transforms.ResizeImages(resizing: ImageResizingEstimator.ResizingKind.Fill, outputColumnName: "data", imageWidth: ImageSettings.imageWidth, imageHeight: ImageSettings.imageHeight, inputColumnName: nameof(WineInput.Image))
                             .Append(context.Transforms.ExtractPixels(outputColumnName: "data"))
-                            .Append(context.Transforms.ApplyOnnxModel(modelFile: "./MLModel/model.onnx", outputColumnName: "model_outputs0", inputColumnName: "data"));
+                            .Append(context.Transforms.ApplyOnnxModel(modelFile: pathModel, outputColumnName: "model_outputs0", inputColumnName: "data"));
 
             var model = pipeline.Fit(data);
 
@@ -48,13 +54,14 @@ namespace MLNET_ObjectDetection_WinForms
 
         private void btnSelectImage_Click(object sender, EventArgs e)
         {
+            string pathText = ProjectLocation + @"\MLModel\labels.txt"; 
             if (fileDialog.ShowDialog() == DialogResult.OK)
             {
                 var image = (Bitmap)Image.FromFile(fileDialog.FileName);
 
                 var prediction = _predictionEngine.Predict(new WineInput { Image = image });
 
-                var labels = File.ReadAllLines("./MLModel/labels.txt");
+                var labels = File.ReadAllLines(pathText);
 
                 var boundingBoxes = ParseOutputs(prediction.WineType, labels);
 
@@ -72,7 +79,7 @@ namespace MLNET_ObjectDetection_WinForms
                 }
                 else
                 {
-                    MessageBox.Show("No prediction for image");
+                    MessageBox.Show("hình ảnh chưa được cung cấp nhận dạng trước trong file model.onnx, vui lòng thêm ảnh vào để nhận dạng!!");
                     return;
                 }
 
@@ -204,6 +211,20 @@ namespace MLNET_ObjectDetection_WinForms
             btnNewPrediction.Visible = false;
             picPrediction.Visible = false;
             btnSelectImage.Visible = true;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // size 108,37
+            // location 383, 106
+            btnNewPrediction.Size = new Size(108, 37);
+            btnNewPrediction.Location = new Point(383,106);
+            btnNewPrediction.BackColor = Color.LightGreen;
+
+             btnSelectImage.Size = new Size(108, 37);
+            btnSelectImage.Location = new Point(383,106);
+            btnSelectImage.BackColor = Color.LightGreen;
+            btnSelectImage.Text = "chọn ảnh";
         }
 
         private static int GetOffset(int row, int column, int channel)
